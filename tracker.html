@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <style>
+        /* Base styles */
+        body {
+            font-family: 'Inter', sans-serif;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        /* Hide sections by default */
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* General Theme Variables */
+        :root {
+            --bg-primary: #f3f4f6;
+            --bg-secondary: #ffffff;
+            --text-primary: #1f2937;
+            --text-secondary: #6b7280;
+            --accent-primary: #3b82f6; /* Blue */
+            --accent-secondary: #10b981; /* Green */
+            --border-color: #e5e7eb;
+            --card-bg: #ffffff;
+            --shadow-color: rgba(0, 0, 0, 0.05);
+            --button-bg: var(--accent-primary);
+            --button-text: white;
+            --button-hover-bg: #2563eb;
+            --input-bg: #ffffff; /* Added for inputs */
+            --input-text: var(--text-primary); /* Added for inputs */
+        }
+
+        /* Apply base variables */
+        body { background-color: var(--bg-primary); color: var(--text-primary); }
+        .kanban-column, .tracker-section, .theme-selector, .content-box { background-color: var(--bg-secondary); border-color: var(--border-color); box-shadow: 0 1px 3px 0 var(--shadow-color), 0 1px 2px 0 var(--shadow-color); border: 1px solid var(--border-color); }
+        .task-card, .entry-card { background-color: var(--card-bg); border-color: var(--border-color); color: var(--text-primary); }
+        h1, h2, h3 { color: var(--text-primary); }
+        input, select { border-color: var(--border-color); background-color: var(--input-bg); color: var(--input-text); }
+        button { border: none; } /* Remove default button border */
+        button.primary-action { background-color: var(--button-bg); color: var(--button-text); }
+        button.primary-action:hover { background-color: var(--button-hover-bg); }
+        .tab-button.active { border-bottom-color: var(--accent-primary); color: var(--accent-primary); font-weight: 600; }
+        .tab-button { border-bottom-color: transparent; color: var(--text-secondary); }
+        .delete-btn { color: #ef4444; background: none; padding: 0; }
+        .delete-btn:hover { color: #dc2626; }
+
+        /* Kanban specific styles */
+        .task-list { background-color: rgba(0,0,0,0.02); }
+        .task-card { cursor: grab; }
+        .task-card.dragging { opacity: 0.5; cursor: grabbing; transform: rotate(3deg); }
+        .drag-over { background-color: rgba(59, 130, 246, 0.1); border: 2px dashed var(--accent-primary); }
+        #todo-column h2 { color: #6b7280; }
+        #inprogress-column h2 { color: #f59e0b; }
+        #done-column h2 { color: #10b981; }
+
+        /* Content Box Style */
+        .content-box {
+            padding: 1rem;
+            margin-top: 1.5rem;
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+        .content-box h4 {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--accent-primary);
+        }
+        .content-box ul {
+            list-style: disc;
+            padding-left: 1.5rem;
+            margin-top: 0.5rem;
+        }
+         .content-box p + p {
+            margin-top: 0.5rem;
+        }
+
+
+        /* --- Theme Definitions --- */
+        /* Pink Theme */
+        body.theme-pink {
+            --bg-primary: #fff1f2; --bg-secondary: #ffe4e6; --text-primary: #831843; --text-secondary: #be185d; --accent-primary: #ec4899; --accent-secondary: #f472b6; --border-color: #fecdd3; --card-bg: #ffffff; --shadow-color: rgba(219, 39, 119, 0.1); --button-bg: #ec4899; --button-hover-bg: #db2777; --input-bg: #ffffff; --input-text: #831843;
+        }
+        body.theme-pink #inprogress-column h2 { color: #d97706; } body.theme-pink #done-column h2 { color: #059669; } body.theme-pink .delete-btn { color: #be123c; } body.theme-pink .delete-btn:hover { color: #9f1239; }
+        body.theme-pink .content-box h4 { color: var(--accent-primary); }
+
+        /* Gotham Theme */
+        body.theme-gotham {
+            --bg-primary: #1a202c; --bg-secondary: #2d3748; --text-primary: #e2e8f0; --text-secondary: #a0aec0; --accent-primary: #f6e05e; --accent-secondary: #4299e1; --border-color: #4a5568; --card-bg: #2d3748; --shadow-color: rgba(0, 0, 0, 0.4); --button-bg: var(--accent-primary); --button-text: #1a202c; --button-hover-bg: #ecc94b; --input-bg: #4a5568; --input-text: #e2e8f0;
+        }
+        body.theme-gotham .task-list { background-color: rgba(255, 255, 255, 0.03); } body.theme-gotham #todo-column h2 { color: #a0aec0; } body.theme-gotham #inprogress-column h2 { color: #f6e05e; } body.theme-gotham #done-column h2 { color: #68d391; } body.theme-gotham .delete-btn { color: #fc8181; } body.theme-gotham .delete-btn:hover { color: #f56565; } body.theme-gotham .tab-button.active { border-bottom-color: var(--accent-primary); color: var(--accent-primary); } body.theme-gotham .tab-button { color: var(--text-secondary); }
+        body.theme-gotham .content-box h4 { color: var(--accent-primary); }
+
+        /* Cream Theme */
+        body.theme-cream {
+            --bg-primary: #fdfbf6; --bg-secondary: #f7f3e9; --text-primary: #5f4b32; --text-secondary: #8c7b6a; --accent-primary: #c8a07d; --accent-secondary: #a08f7f; --border-color: #e3dcd1; --card-bg: #ffffff; --shadow-color: rgba(95, 75, 50, 0.1); --button-bg: var(--accent-primary); --button-hover-bg: #b38a69; --input-bg: #ffffff; --input-text: #5f4b32;
+        }
+        body.theme-cream #inprogress-column h2 { color: #d97706; } body.theme-cream #done-column h2 { color: #059669; }
+        body.theme-cream .content-box h4 { color: var(--accent-primary); }
+
+        /* Purple Theme */
+        body.theme-purple {
+            --bg-primary: #f5f3ff; --bg-secondary: #ede9fe; --text-primary: #5b21b6; --text-secondary: #7c3aed; --accent-primary: #8b5cf6; --accent-secondary: #a78bfa; --border-color: #ddd6fe; --card-bg: #ffffff; --shadow-color: rgba(139, 92, 246, 0.1); --button-bg: var(--accent-primary); --button-hover-bg: #7c3aed; --input-bg: #ffffff; --input-text: #5b21b6;
+        }
+        body.theme-purple #inprogress-column h2 { color: #d97706; } body.theme-purple #done-column h2 { color: #059669; }
+        body.theme-purple .content-box h4 { color: var(--accent-primary); }
+
+        /* White Theme */
+        body.theme-white {
+            --bg-primary: #ffffff; --bg-secondary: #ffffff; --text-primary: #111827; --text-secondary: #6b7280; --accent-primary: #000000; --accent-secondary: #4b5563; --border-color: #f3f4f6; --card-bg: #ffffff; --shadow-color: rgba(0, 0, 0, 0.03); --button-bg: #000000; --button-hover-bg: #374151; --input-bg: #ffffff; --input-text: #111827;
+        }
+        body.theme-white .kanban-column, body.theme-white .tracker-section, body.theme-white .content-box { border: 1px solid var(--border-color); } body.theme-white #inprogress-column h2 { color: #f59e0b; } body.theme-white #done-column h2 { color: #10b981; }
+        body.theme-white .content-box h4 { color: var(--accent-primary); }
+
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <div class="container mx-auto p-4 md:p-6 max-w-7xl">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
+             <h1 class="text-2xl md:text-3xl font-bold">Personal Dashboard</h1>
+             <div class="theme-selector bg-white p-2 rounded-lg shadow-sm border">
+                 <label for="themeSelect" class="text-sm font-medium mr-2">Theme:</label>
+                 <select id="themeSelect" class="rounded border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500 p-1">
+                     <option value="default">Default</option>
+                     <option value="white">White</option>
+                     <option value="pink">Pink</option>
+                     <option value="gotham">Gotham</option>
+                     <option value="cream">Cream</option>
+                     <option value="purple">Purple</option>
+                 </select>
+             </div>
+        </div>
+
+
+        <div class="mb-6 border-b">
+            <nav class="flex flex-wrap -mb-px" aria-label="Tabs">
+                <button class="tab-button py-3 px-4 text-center text-sm font-medium rounded-t-lg border-b-2 active" data-tab="tasks">
+                    <i class="fas fa-tasks mr-1"></i> Tasks
+                </button>
+                <button class="tab-button py-3 px-4 text-center text-sm font-medium rounded-t-lg border-b-2" data-tab="fitness">
+                    <i class="fas fa-dumbbell mr-1"></i> Fitness
+                </button>
+                <button class="tab-button py-3 px-4 text-center text-sm font-medium rounded-t-lg border-b-2" data-tab="diet">
+                    <i class="fas fa-utensils mr-1"></i> Diet & Calories
+                </button>
+            </nav>
+        </div>
+
+        <div id="tabContent">
+
+            <div id="tasksContent" class="tab-content active">
+                <div class="mb-6 flex justify-center items-center gap-2">
+                    <input type="text" id="newTaskInput" placeholder="Enter a new task..." class="border rounded-lg p-3 w-full max-w-md focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none shadow-sm">
+                    <button id="addTaskBtn" class="primary-action p-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 shadow-sm transition duration-150 ease-in-out font-medium whitespace-nowrap">
+                        Add Task
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="kanbanBoard">
+                     <div id="todo-column" class="kanban-column p-4 rounded-lg" data-column-id="todo">
+                        <h2 class="font-bold text-xl mb-4 text-center border-b pb-2">To Do</h2>
+                        <div class="task-list min-h-[250px] p-1" id="todoList"></div>
+                    </div>
+                    <div id="inprogress-column" class="kanban-column p-4 rounded-lg" data-column-id="inprogress">
+                        <h2 class="font-bold text-xl mb-4 text-center border-b pb-2">In Progress</h2>
+                        <div class="task-list min-h-[250px] p-1" id="inprogressList"></div>
+                    </div>
+                    <div id="done-column" class="kanban-column p-4 rounded-lg" data-column-id="done">
+                        <h2 class="font-bold text-xl mb-4 text-center border-b pb-2">Done</h2>
+                        <div class="task-list min-h-[250px] p-1" id="doneList"></div>
+                    </div>
+                </div>
+                 <div class="content-box rounded-lg">
+                    <h4><i class="fas fa-lightbulb mr-1"></i> Productivity Tips</h4>
+                    <p>"The key is not to prioritize what's on your schedule, but to schedule your priorities." - Stephen Covey</p>
+                    <ul>
+                        <li>Break large tasks into smaller, manageable steps.</li>
+                        <li>Use the Pomodoro Technique (work 25 min, break 5 min).</li>
+                        <li>Minimize distractions when focusing on a task.</li>
+                        <li>Celebrate completing tasks, big or small!</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div id="fitnessContent" class="tab-content">
+                 <div class="tracker-section p-4 rounded-lg mb-6">
+                     <h3 class="text-lg font-semibold mb-3">Log Fitness Activity</h3>
+                     <div class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+                         <div class="flex flex-col">
+                             <label for="fitnessDate" class="text-sm font-medium mb-1">Date</label>
+                             <input type="date" id="fitnessDate" class="border rounded p-2">
+                         </div>
+                         <div class="flex flex-col">
+                             <label for="fitnessActivity" class="text-sm font-medium mb-1">Activity</label>
+                             <select id="fitnessActivity" class="border rounded p-2"></select> </div>
+                         <div class="flex flex-col">
+                             <label for="fitnessDuration" class="text-sm font-medium mb-1">Duration (min)</label>
+                             <input type="number" id="fitnessDuration" placeholder="e.g., 30" class="border rounded p-2" min="1">
+                         </div>
+                         <button id="addFitnessBtn" class="primary-action p-2 rounded-lg font-medium w-full md:w-auto self-end h-10">Log Activity</button>
+                     </div>
+                 </div>
+                 <div class="tracker-section p-4 rounded-lg">
+                      <h3 class="text-lg font-semibold mb-3">Activity Log</h3>
+                      <div id="fitnessLog" class="space-y-2">
+                           <p class="italic">No activities logged yet.</p>
+                      </div>
+                 </div>
+                 <div class="content-box rounded-lg">
+                     <h4><i class="fas fa-heartbeat mr-1"></i> Fitness Facts & Motivation</h4>
+                     <p>Regular physical activity is crucial for both physical and mental health. Even short bursts of activity throughout the day add up!</p>
+                     <ul>
+                         <li>Aim for at least 150 minutes of moderate-intensity or 75 minutes of vigorous-intensity aerobic activity per week.</li>
+                         <li>Include muscle-strengthening activities at least 2 days a week.</li>
+                         <li>Listen to your body and rest when needed.</li>
+                         <li>Find activities you enjoy to stay consistent!</li>
+                     </ul>
+                      <p class="text-xs italic mt-2">*Calorie burn estimates are approximate and vary based on individual factors like weight, intensity, and metabolism.</p>
+                 </div>
+            </div>
+
+            <div id="dietContent" class="tab-content">
+                 <div class="tracker-section p-4 rounded-lg mb-6">
+                     <h3 class="text-lg font-semibold mb-3">Log Food Intake</h3>
+                     <div class="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+                          <div class="flex flex-col">
+                              <label for="dietDate" class="text-sm font-medium mb-1">Date</label>
+                              <input type="date" id="dietDate" class="border rounded p-2">
+                          </div>
+                           <div class="flex flex-col">
+                               <label for="mealType" class="text-sm font-medium mb-1">Meal</label>
+                               <select id="mealType" class="border rounded p-2">
+                                   <option value="breakfast">Breakfast</option>
+                                   <option value="lunch">Lunch</option>
+                                   <option value="dinner">Dinner</option>
+                                   <option value="snack">Snack</option>
+                               </select>
+                           </div>
+                          <div class="flex flex-col">
+                              <label for="foodItem" class="text-sm font-medium mb-1">Food Item</label>
+                              <select id="foodItem" class="border rounded p-2"></select> </div>
+                           <div class="flex flex-col">
+                               <label for="foodQuantity" class="text-sm font-medium mb-1">Servings</label>
+                               <input type="number" id="foodQuantity" value="1" min="0.1" step="0.1" class="border rounded p-2">
+                           </div>
+                          <button id="addDietBtn" class="primary-action p-2 rounded-lg font-medium w-full md:w-auto self-end h-10">Log Food</button>
+                     </div>
+                 </div>
+                 <div class="tracker-section p-4 rounded-lg">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 gap-2">
+                         <h3 class="text-lg font-semibold">Food Log</h3>
+                         <div class="text-left sm:text-right">
+                            <label for="calorieDateFilter" class="text-sm mr-1">Show Log for:</label>
+                            <input type="date" id="calorieDateFilter" class="border rounded p-1 text-sm">
+                            <p class="text-lg font-semibold mt-1">Total Approx. Calories: <span id="totalCalories">0</span> kcal</p>
+                         </div>
+                    </div>
+                    <div id="dietLog" class="space-y-2">
+                         <p class="italic">No food logged yet for the selected date.</p>
+                    </div>
+                 </div>
+                 <div class="content-box rounded-lg">
+                     <h4><i class="fas fa-apple-alt mr-1"></i> Healthy Eating Insights</h4>
+                     <p>A balanced diet provides the energy and nutrients your body needs. Focus on whole foods and mindful eating.</p>
+                     <ul>
+                         <li>Include plenty of fruits, vegetables, whole grains, and lean proteins.</li>
+                         <li>Limit processed foods, sugary drinks, and excessive saturated fats.</li>
+                         <li>Stay hydrated by drinking enough water throughout the day.</li>
+                         <li>Pay attention to portion sizes.</li>
+                     </ul>
+                     <p class="text-xs italic mt-2">*Calorie counts are estimates based on standard servings and may vary. This tool is for informational purposes only.</p>
+                 </div>
+            </div>
+
+        </div> </div>
+
+    <script>
+        // --- Constants & Data ---
+        const LS_KEYS = {
+            TASKS: 'kanbanTasks',
+            FITNESS: 'fitnessEntries',
+            DIET: 'dietEntries',
+            THEME: 'selectedTheme'
+        };
+
+        // Diet Data (Approximate calories per standard serving)
+        const foodCalorieData = {
+            'apple': { name: 'Apple (medium)', calories: 95 },
+            'banana': { name: 'Banana (medium)', calories: 105 },
+            'chicken_breast': { name: 'Chicken Breast (100g)', calories: 165 },
+            'rice_white': { name: 'Rice, White (1 cup cooked)', calories: 205 },
+            'salad_green': { name: 'Salad, Green (basic)', calories: 15 },
+            'bread_slice': { name: 'Bread Slice (whole wheat)', calories: 80 },
+            'egg': { name: 'Egg (large)', calories: 70 },
+            'milk': { name: 'Milk (1 cup, 2%)', calories: 122 },
+            'yogurt': { name: 'Yogurt (plain, 1 cup)', calories: 150 },
+            'salmon': { name: 'Salmon (100g)', calories: 208 },
+            'broccoli': { name: 'Broccoli (1 cup chopped)', calories: 55 },
+            'orange_juice': { name: 'Orange Juice (1 cup)', calories: 112 },
+            'peanut_butter': { name: 'Peanut Butter (2 tbsp)', calories: 190 }
+        };
+
+        // Fitness Data (Approximate METs - Metabolic Equivalent of Task)
+        const exerciseMETs = {
+            'walking': { name: 'Walking (moderate pace)', met: 3.5 },
+            'running': { name: 'Running (moderate pace, ~10 min/mile)', met: 9.8 },
+            'cycling': { name: 'Cycling (moderate effort, ~12-14 mph)', met: 7.5 },
+            'swimming': { name: 'Swimming (freestyle, moderate)', met: 7.0 },
+            'weightlifting': { name: 'Weightlifting (general, vigorous)', met: 6.0 },
+            'yoga': { name: 'Yoga (Hatha)', met: 2.5 },
+            'hiking': { name: 'Hiking (general)', met: 6.0 },
+            'dancing': { name: 'Dancing (aerobic)', met: 7.3 }
+        };
+
+        // Simplified Calorie Burn Factor (MET * minutes * factor) - VERY rough estimate
+        const CALORIE_BURN_FACTOR = 0.075; // Adjusted slightly
+
+        // --- DOM Elements ---
+        // (Get elements as before, adding new ones)
+        const themeSelect = document.getElementById('themeSelect');
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const tabContents = document.querySelectorAll('.tab-content');
+        // Tasks
+        const taskInput = document.getElementById('newTaskInput');
+        const addTaskBtn = document.getElementById('addTaskBtn');
+        const todoList = document.getElementById('todoList');
+        const inprogressList = document.getElementById('inprogressList');
+        const doneList = document.getElementById('doneList');
+        const taskColumns = document.querySelectorAll('.task-list');
+        // Fitness
+        const fitnessDateInput = document.getElementById('fitnessDate');
+        const fitnessActivitySelect = document.getElementById('fitnessActivity'); // Changed to select
+        const fitnessDurationInput = document.getElementById('fitnessDuration');
+        const addFitnessBtn = document.getElementById('addFitnessBtn');
+        const fitnessLog = document.getElementById('fitnessLog');
+        // Diet
+        const dietDateInput = document.getElementById('dietDate');
+        const mealTypeInput = document.getElementById('mealType');
+        const foodItemSelect = document.getElementById('foodItem'); // Changed to select
+        const foodQuantityInput = document.getElementById('foodQuantity'); // Added quantity
+        const addDietBtn = document.getElementById('addDietBtn');
+        const dietLog = document.getElementById('dietLog');
+        const totalCaloriesDisplay = document.getElementById('totalCalories');
+        const calorieDateFilter = document.getElementById('calorieDateFilter');
+
+
+        // --- State ---
+        let tasks = [];
+        let fitnessEntries = [];
+        let dietEntries = [];
+        let draggedTask = null;
+        let currentTheme = 'default';
+
+        // --- Utility Functions ---
+        function generateId() { /* ... (same as before) ... */ return Date.now().toString(36) + Math.random().toString(36).substring(2); }
+        function getTodayDateString() { /* ... (same as before) ... */ const today = new Date(); const year = today.getFullYear(); const month = String(today.getMonth() + 1).padStart(2, '0'); const day = String(today.getDate()).padStart(2, '0'); return `${year}-${month}-${day}`; }
+
+        // --- Local Storage Functions ---
+        function saveData(key, data) { /* ... (same as before) ... */ try { localStorage.setItem(key, JSON.stringify(data)); } catch (e) { console.error(`Error saving ${key}:`, e); } }
+        function loadData(key, defaultValue = []) { /* ... (same as before) ... */ const storedData = localStorage.getItem(key); if (storedData) { try { return JSON.parse(storedData); } catch (e) { console.error(`Error parsing ${key}:`, e); localStorage.removeItem(key); return defaultValue; } } return defaultValue; }
+
+        // --- Populate Select Options ---
+        function populateSelectWithOptions(selectElement, dataObject) {
+            selectElement.innerHTML = ''; // Clear existing options
+            for (const key in dataObject) {
+                const option = document.createElement('option');
+                option.value = key;
+                option.textContent = dataObject[key].name; // Use the 'name' property for display
+                selectElement.appendChild(option);
+            }
+        }
+
+        // --- Theme Management ---
+        function applyTheme(theme) { /* ... (same as before) ... */ document.body.className = ''; /* Clear existing theme classes */ if (theme !== 'default') { document.body.classList.add(`theme-${theme}`); } currentTheme = theme; saveData(LS_KEYS.THEME, theme); themeSelect.value = theme; }
+        function loadTheme() { /* ... (same as before) ... */ const savedTheme = loadData(LS_KEYS.THEME, 'default'); applyTheme(savedTheme); }
+
+        // --- Tab Navigation ---
+        function activateTab(targetTab) { /* ... (same as before) ... */ tabButtons.forEach(b => b.classList.toggle('active', b.dataset.tab === targetTab)); tabContents.forEach(c => c.classList.toggle('active', c.id === `${targetTab}Content`)); }
+
+        // --- Task Management ---
+        function createTaskElement(task) { /* ... (mostly same, ensure classes are correct) ... */ const taskCard = document.createElement('div'); taskCard.className = 'task-card p-3 mb-2 rounded border shadow-sm'; taskCard.setAttribute('draggable', 'true'); taskCard.setAttribute('data-task-id', task.id); const taskText = document.createElement('span'); taskText.textContent = task.text; taskText.className = "break-words mr-2"; const deleteBtn = document.createElement('button'); deleteBtn.innerHTML = '&times;'; deleteBtn.className = 'delete-btn float-right text-lg leading-none ml-1'; deleteBtn.title = 'Delete Task'; deleteBtn.onclick = (e) => { e.stopPropagation(); deleteTask(task.id); }; taskCard.appendChild(deleteBtn); taskCard.appendChild(taskText); taskCard.addEventListener('dragstart', (e) => { draggedTask = taskCard; e.dataTransfer.setData('text/plain', task.id); setTimeout(() => taskCard.classList.add('dragging'), 0); }); taskCard.addEventListener('dragend', () => { if (draggedTask) draggedTask.classList.remove('dragging'); draggedTask = null; taskColumns.forEach(col => col.classList.remove('drag-over')); }); return taskCard; }
+        function renderTasks() { /* ... (same as before) ... */ todoList.innerHTML = ''; inprogressList.innerHTML = ''; doneList.innerHTML = ''; tasks.forEach(task => { const el = createTaskElement(task); if (task.column === 'todo') todoList.appendChild(el); else if (task.column === 'inprogress') inprogressList.appendChild(el); else if (task.column === 'done') doneList.appendChild(el); }); }
+        function addTask() { /* ... (same as before) ... */ const text = taskInput.value.trim(); if (text === '') return; const newTask = { id: generateId(), text: text, column: 'todo' }; tasks.push(newTask); saveData(LS_KEYS.TASKS, tasks); renderTasks(); taskInput.value = ''; taskInput.focus(); }
+        function deleteTask(taskId) { /* ... (same as before) ... */ if (confirm('Delete task?')) { tasks = tasks.filter(t => t.id !== taskId); saveData(LS_KEYS.TASKS, tasks); renderTasks(); } }
+        function triggerConfetti() { /* ... (same as before) ... */ if (typeof confetti === 'function') { confetti({ particleCount: 150, spread: 90, origin: { y: 0.6 } }); } else { console.warn("Confetti fn not found."); } }
+
+        // --- Fitness Tracking (Updated) ---
+        function createFitnessEntryElement(entry) {
+            const entryCard = document.createElement('div');
+            entryCard.className = 'entry-card p-3 mb-2 rounded border shadow-sm flex justify-between items-center';
+            entryCard.setAttribute('data-entry-id', entry.id);
+
+            const activityName = exerciseMETs[entry.activityKey]?.name || entry.activityKey; // Get display name
+            const estimatedCalories = entry.caloriesBurned ? `~${entry.caloriesBurned} kcal` : ''; // Show calculated calories
+
+            entryDetails = document.createElement('div');
+            entryDetails.innerHTML = `
+                <span class="font-medium">${activityName}</span> - ${entry.duration} min
+                <span class="text-sm font-semibold block">${estimatedCalories}</span>
+                <span class="text-xs text-gray-500 block">${entry.date}</span>
+            `;
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.innerHTML = '&times;';
+            deleteBtn.className = 'delete-btn text-lg leading-none ml-2';
+            deleteBtn.title = 'Delete Entry';
+            deleteBtn.onclick = () => deleteFitnessEntry(entry.id);
+
+            entryCard.appendChild(entryDetails);
+            entryCard.appendChild(deleteBtn);
+            return entryCard;
+        }
+        function renderFitnessEntries() { /* ... (mostly same, ensure placeholder text) ... */ fitnessLog.innerHTML = ''; if (fitnessEntries.length === 0) { fitnessLog.innerHTML = `<p class="italic text-sm">No activities logged yet.</p>`; return; } const sorted = [...fitnessEntries].sort((a, b) => new Date(b.date) - new Date(a.date)); sorted.forEach(entry => fitnessLog.appendChild(createFitnessEntryElement(entry))); }
+
+        function addFitnessEntry() {
+            const date = fitnessDateInput.value;
+            const activityKey = fitnessActivitySelect.value; // Get selected activity key
+            const duration = fitnessDurationInput.value.trim();
+
+            if (!date || !activityKey || !duration || isNaN(parseInt(duration)) || parseInt(duration) <= 0) {
+                alert('Please fill in Date, select Activity, and enter Duration > 0.');
+                return;
+            }
+
+            const durationMinutes = parseInt(duration);
+            const metValue = exerciseMETs[activityKey]?.met || 0; // Get MET value
+
+            // Calculate estimated calories burned
+            const caloriesBurned = Math.round(metValue * durationMinutes * CALORIE_BURN_FACTOR);
+
+            const newEntry = {
+                id: generateId(),
+                date: date,
+                activityKey: activityKey, // Store the key
+                duration: durationMinutes,
+                caloriesBurned: caloriesBurned // Store calculated calories
+            };
+
+            fitnessEntries.push(newEntry);
+            saveData(LS_KEYS.FITNESS, fitnessEntries);
+            renderFitnessEntries();
+
+            // Clear inputs (keep date)
+            fitnessActivitySelect.selectedIndex = 0; // Reset dropdown
+            fitnessDurationInput.value = '';
+            fitnessActivitySelect.focus();
+        }
+        function deleteFitnessEntry(entryId) { /* ... (same as before) ... */ if (confirm('Delete fitness entry?')) { fitnessEntries = fitnessEntries.filter(e => e.id !== entryId); saveData(LS_KEYS.FITNESS, fitnessEntries); renderFitnessEntries(); } }
+
+        // --- Diet Tracking & Calorie Counting (Updated) ---
+        function createDietEntryElement(entry) {
+            const entryCard = document.createElement('div');
+            entryCard.className = 'entry-card p-3 mb-2 rounded border shadow-sm flex justify-between items-center';
+            entryCard.setAttribute('data-entry-id', entry.id);
+
+            const foodName = foodCalorieData[entry.foodKey]?.name || entry.foodKey;
+            const calculatedCalories = entry.totalCalories ? `${entry.totalCalories} kcal` : '';
+            const servingText = entry.quantity > 1 ? `${entry.quantity} servings` : `${entry.quantity} serving`;
+
+            const entryDetails = document.createElement('div');
+            entryDetails.innerHTML = `
+                <span class="font-medium">${foodName}</span> (${entry.mealType}) - ${servingText}
+                <span class="text-sm font-semibold block">${calculatedCalories}</span>
+                <span class="text-xs text-gray-500 block">${entry.date}</span>
+            `;
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.innerHTML = '&times;';
+            deleteBtn.className = 'delete-btn text-lg leading-none ml-2';
+            deleteBtn.title = 'Delete Entry';
+            deleteBtn.onclick = () => deleteDietEntry(entry.id);
+
+            entryCard.appendChild(entryDetails);
+            entryCard.appendChild(deleteBtn);
+            return entryCard;
+        }
+
+        function calculateTotalCalories(filterDate) {
+            const total = dietEntries
+                .filter(entry => entry.date === filterDate)
+                .reduce((sum, entry) => sum + (entry.totalCalories || 0), 0); // Sum calculated calories
+            totalCaloriesDisplay.textContent = total;
+        }
+
+        function renderDietEntries(filterDate) { /* ... (mostly same, ensure placeholder text) ... */ dietLog.innerHTML = ''; const entriesForDate = dietEntries.filter(e => e.date === filterDate); if (entriesForDate.length === 0) { dietLog.innerHTML = `<p class="italic text-sm">No food logged for ${filterDate}.</p>`; } else { entriesForDate.forEach(entry => dietLog.appendChild(createDietEntryElement(entry))); } calculateTotalCalories(filterDate); }
+
+        function addDietEntry() {
+            const date = dietDateInput.value;
+            const mealType = mealTypeInput.value;
+            const foodKey = foodItemSelect.value; // Get selected food key
+            const quantity = parseFloat(foodQuantityInput.value);
+
+            if (!date || !foodKey || isNaN(quantity) || quantity <= 0) {
+                 alert('Please fill in Date, select Food, and enter Quantity > 0.');
+                return;
+            }
+
+            const foodData = foodCalorieData[foodKey];
+            if (!foodData) {
+                alert('Selected food item data not found.');
+                return;
+            }
+
+            // Calculate total calories for the entry
+            const totalCalories = Math.round(foodData.calories * quantity);
+
+             const newEntry = {
+                id: generateId(),
+                date: date,
+                mealType: mealType,
+                foodKey: foodKey, // Store the key
+                quantity: quantity,
+                totalCalories: totalCalories // Store calculated total calories
+            };
+
+            dietEntries.push(newEntry);
+            saveData(LS_KEYS.DIET, dietEntries);
+            renderDietEntries(calorieDateFilter.value); // Re-render for the currently selected date
+
+            // Clear inputs (keep date and meal type)
+            foodItemSelect.selectedIndex = 0;
+            foodQuantityInput.value = '1';
+            foodItemSelect.focus();
+        }
+        function deleteDietEntry(entryId) { /* ... (same as before) ... */ if (confirm('Delete food entry?')) { dietEntries = dietEntries.filter(e => e.id !== entryId); saveData(LS_KEYS.DIET, dietEntries); renderDietEntries(calorieDateFilter.value); } }
+
+
+        // --- Event Listeners Setup ---
+        function setupEventListeners() {
+            // Theme
+            themeSelect.addEventListener('change', (e) => applyTheme(e.target.value));
+            // Tabs
+            tabButtons.forEach(b => b.addEventListener('click', () => activateTab(b.dataset.tab)));
+            // Tasks
+            addTaskBtn.addEventListener('click', addTask);
+            taskInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') addTask(); });
+            // Task Drag/Drop
+            taskColumns.forEach(col => {
+                col.addEventListener('dragover', (e) => { e.preventDefault(); if (!col.classList.contains('drag-over')) col.classList.add('drag-over'); });
+                col.addEventListener('dragleave', () => col.classList.remove('drag-over'));
+                col.addEventListener('drop', (e) => {
+                    e.preventDefault(); col.classList.remove('drag-over'); if (!draggedTask) return;
+                    const taskId = e.dataTransfer.getData('text/plain');
+                    const targetColId = col.closest('.kanban-column').dataset.columnId;
+                    const taskIndex = tasks.findIndex(t => t.id === taskId);
+                    if (taskIndex > -1) {
+                        const prevCol = tasks[taskIndex].column;
+                        tasks[taskIndex].column = targetColId;
+                        if (targetColId === 'done' && prevCol !== 'done') triggerConfetti();
+                        saveData(LS_KEYS.TASKS, tasks); renderTasks();
+                    }
+                    draggedTask = null;
+                });
+            });
+            // Fitness
+            addFitnessBtn.addEventListener('click', addFitnessEntry);
+            fitnessDurationInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') addFitnessEntry(); });
+            // Diet
+            addDietBtn.addEventListener('click', addDietEntry);
+            foodQuantityInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') addDietEntry(); }); // Allow enter on quantity
+            calorieDateFilter.addEventListener('change', (e) => renderDietEntries(e.target.value));
+        }
+
+        // --- Initial Load ---
+        function initializeApp() {
+            const today = getTodayDateString();
+            fitnessDateInput.value = today;
+            dietDateInput.value = today;
+            calorieDateFilter.value = today;
+
+            // Populate select dropdowns
+            populateSelectWithOptions(fitnessActivitySelect, exerciseMETs);
+            populateSelectWithOptions(foodItemSelect, foodCalorieData);
+
+            loadTheme();
+            tasks = loadData(LS_KEYS.TASKS, [/* Default tasks if needed */]);
+            fitnessEntries = loadData(LS_KEYS.FITNESS);
+            dietEntries = loadData(LS_KEYS.DIET);
+
+            renderTasks();
+            renderFitnessEntries();
+            renderDietEntries(today);
+            activateTab('tasks'); // Default tab
+            setupEventListeners(); // Setup listeners after elements exist
+        }
+
+        document.addEventListener('DOMContentLoaded', initializeApp);
+
+    </script>
+
+</body>
+</html>
